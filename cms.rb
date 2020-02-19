@@ -26,8 +26,17 @@ def load_file_content(path)
   end
 end
 
+def data_path
+  if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/data", __FILE__)
+  else
+    File.expand("../data", __FILE__)
+  end
+end
+
 get '/' do
-  # @files = Dir.children(root + '/data').sort
+  pattern = File.join(data_path, "*")
+
   @files = Dir.glob(root + "/data/*").map do |path|
     File.basename(path)
   end
@@ -35,7 +44,7 @@ get '/' do
 end
 
 get '/:filename' do
-  file_path = root + "/data/" + params[:filename]
+  file_path = File.join(data_path, params[:filename])
 
   if File.file?(file_path)
     load_file_content(file_path)
@@ -47,7 +56,7 @@ get '/:filename' do
 end
 
 get '/:filename/edit' do
-  file_path = root + "/data/" + params[:filename]
+  file_path = File.join(data_path, params[:filename])
 
   @filename = params[:filename]
   @content = File.read(file_path)
@@ -56,7 +65,7 @@ get '/:filename/edit' do
 end
 
 post '/:filename' do
-  file_path = root + "/data/" + params[:filename]
+  file_path = File.join(data_path, params[:filename])
 
   File.write(file_path, params[:content])
 
