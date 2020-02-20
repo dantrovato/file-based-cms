@@ -22,7 +22,7 @@ def load_file_content(path)
     headers["Content-Type"] = "text/plain"
     content
   when ".md"
-    render_markdown(content)
+    erb render_markdown(content)
   end
 end
 
@@ -30,7 +30,7 @@ def data_path
   if ENV["RACK_ENV"] == "test"
     File.expand_path("../test/data", __FILE__)
   else
-    File.expand("../data", __FILE__)
+    File.expand_path("../data", __FILE__)
   end
 end
 
@@ -48,7 +48,6 @@ get '/:filename' do
 
   if File.file?(file_path)
     load_file_content(file_path)
-
   else
     session[:message] = "#{params[:filename]} does not exist."
     redirect '/'
