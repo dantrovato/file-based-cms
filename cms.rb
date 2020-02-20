@@ -43,11 +43,23 @@ get '/' do
   erb :index
 end
 
+# get '/:filename' do
+#   file_path = File.join(data_path, params[:filename])
+#
+#   if File.file?(file_path)
+#     load_file_content(file_path)
+#   else
+#     session[:message] = "#{params[:filename]} does not exist."
+#     redirect '/'
+#   end
+# end
 get '/:filename' do
   file_path = File.join(data_path, params[:filename])
-
+  path_for_view_files = File.expand_path("..", __FILE__) + "/views/#{params[:filename]}.erb"
   if File.file?(file_path)
     load_file_content(file_path)
+  elsif File.file?(path_for_view_files)
+    load_file_content(path_for_view_files)
   else
     session[:message] = "#{params[:filename]} does not exist."
     redirect '/'
@@ -70,4 +82,8 @@ post '/:filename' do
 
   session[:message] = "#{params[:filename]} has been updated."
   redirect '/'
+end
+
+get '/new' do
+  'erb :new'
 end
