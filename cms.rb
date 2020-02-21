@@ -34,7 +34,14 @@ def data_path
   end
 end
 
+# def create_document(name, content = "")
+#   File.open(File.join(data_path, name), "w") do |file|
+#     file.write(content)
+#   end
+# end
+
 get '/' do
+  # binding.pry
   pattern = File.join(data_path, "*")
 
   @files = Dir.glob(root + "/data/*").map do |path|
@@ -43,23 +50,15 @@ get '/' do
   erb :index
 end
 
-# get '/:filename' do
-#   file_path = File.join(data_path, params[:filename])
-#
-#   if File.file?(file_path)
-#     load_file_content(file_path)
-#   else
-#     session[:message] = "#{params[:filename]} does not exist."
-#     redirect '/'
-#   end
-# end
+get '/new' do
+  erb :new
+end
+
 get '/:filename' do
   file_path = File.join(data_path, params[:filename])
-  path_for_view_files = File.expand_path("..", __FILE__) + "/views/#{params[:filename]}.erb"
+
   if File.file?(file_path)
     load_file_content(file_path)
-  elsif File.file?(path_for_view_files)
-    load_file_content(path_for_view_files)
   else
     session[:message] = "#{params[:filename]} does not exist."
     redirect '/'
@@ -75,6 +74,23 @@ get '/:filename/edit' do
   erb :edit
 end
 
+post '/create' do
+  filename = params[:filename].to_s
+
+  if filename.size == 0
+    session[:message] = "A name is required."
+    status 422
+    erb :new
+  else
+    file_path = File.join(data_path, filename)
+    # create_document(filename)
+    File.write(file_path, "")
+    session[:message] = "#{filename} has been created."
+
+    redirect '/'
+  end
+end
+
 post '/:filename' do
   file_path = File.join(data_path, params[:filename])
 
@@ -82,8 +98,4 @@ post '/:filename' do
 
   session[:message] = "#{params[:filename]} has been updated."
   redirect '/'
-end
-
-get '/new' do
-  'erb :new'
 end
