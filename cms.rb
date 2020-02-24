@@ -34,20 +34,30 @@ def data_path
   end
 end
 
-# def create_document(name, content = "")
-#   File.open(File.join(data_path, name), "w") do |file|
-#     file.write(content)
-#   end
-# end
-
 get '/' do
-  # binding.pry
   pattern = File.join(data_path, "*")
 
   @files = Dir.glob(root + "/data/*").map do |path|
     File.basename(path)
   end
   erb :index
+end
+# get '/' do
+#   # binding.pry
+#   if session[:username]  == 'admin' && session[:password]  == 'secret'
+#     pattern = File.join(data_path, "*")
+#
+#     @files = Dir.glob(root + "/data/*").map do |path|
+#       File.basename(path)
+#     end
+#     erb :index
+#   else
+#     erb :users
+#   end
+# end
+
+get '/users' do
+  erb :users
 end
 
 get '/new' do
@@ -106,5 +116,28 @@ post "/:filename/delete" do
   File.delete(file_path)
 
   session[:message] = "#{params[:filename]} has been deleted."
+  redirect '/'
+end
+
+get '/users/signin' do
+  erb :signin
+end
+
+post '/users/signin' do
+  if params[:username] == "admin" && params[:password] == "secret"
+    session[:username] = params[:username]
+    session[:message] = "Welcome!"
+    redirect "/"
+  else
+    session[:message] = "Invalid Credentials"
+    status 422
+    erb :signin
+  end
+end
+
+post '/users/signout' do
+  session[:password] = nil
+  session[:username] = nil
+  session[:message] = "You have been signed out."
   redirect '/'
 end
