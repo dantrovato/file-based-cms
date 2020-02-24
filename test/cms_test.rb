@@ -1,8 +1,9 @@
 ENV["RACK_ENV"] = "test"
 
+require "fileutils"
+
 require "minitest/autorun"
 require "rack/test"
-require "fileutils"
 
 require_relative "../cms"
 
@@ -27,42 +28,26 @@ class CMSTest < Minitest::Test
     end
   end
 
-  # def test_index
-  #   create_document("about.md")
-  #   create_document("changes.txt")
-  #
-  #   get "/"
-  #
-  #   assert_equal 200, last_response.status
-  #   assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
-  #   assert_includes last_response.body, "changes.txt"
-  #   assert_includes last_response.body, "about.md"
-  #
-  # end
+  def session
+    last_request.env["rack.session"]
+  end
+
   def test_index
-    create_document("about.md")
-    create_document("changes.txt")
+    create_document "about.md"
+    create_document "changes.txt"
 
     get "/"
 
-    refute_equal last_response.body, "changes.txt"
-    refute_equal last_response.body, "about.md"
-
-    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
     assert_equal 200, last_response.status
-
-    post "/users/signin", username: "admin", password: "secret"
-
-    assert_equal 302, last_response.status
-
-    get '/'
-    assert_includes last_response.body, "changes.txt"
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
     assert_includes last_response.body, "about.md"
-
+    assert_includes last_response.body, "changes.txt"
   end
+
 
   def test_viewing_text_do
     create_document("history.txt", "1993 - Yukihiro Matsumoto dreams up Ruby.")
+
     get "/history.txt"
 
     assert_equal 200, last_response.status
@@ -70,19 +55,26 @@ class CMSTest < Minitest::Test
     assert last_response.body.include?("1993 - Yukihiro Matsumoto dreams up Ruby.")
   end
 
-  def test_document_not_found
-    get '/notafile.ext'
+  # def test_document_not_found
+  #   get '/notafile.ext'
+  #
+  #   assert_equal 302, last_response.status
+  #   assert_equal "notafile.ext does not exist.", session[:message]
+  #   get last_response["Location"]
+  #
+  #   assert_equal 200, last_response.status
+  #   assert_includes last_response.body, "notafile.ext does not exist."
+  #
+  #   get "/"
+  #
+  #   refute_includes last_response.body, "notafile.ext does not exist."
+  # end
+
+def test_document_not_found
+    get "/notafile.ext"
 
     assert_equal 302, last_response.status
-
-    get last_response["Location"]
-
-    assert_equal 200, last_response.status
-    assert_includes last_response.body, "notafile.ext does not exist."
-
-    get "/"
-
-    refute_includes last_response.body, "notafile.ext does not exist."
+    assert_equal "notafile.ext does not exist.", session[:message]
   end
 
   def test_viewig_markdown_document
@@ -152,15 +144,13 @@ class CMSTest < Minitest::Test
     create_document("test.txt")
 
     post "/test.txt/delete"
-
     assert_equal 302, last_response.status
 
-    get last_response["Location"]
-    assert_includes last_response.body, "test.txt has been deleted"
+    assert_equal "test.txt has been deleted.", session[:message]
 
     get "/"
 
-    refute_includes last_response.body, "test.txt"
+    refute_includes last_response.body, %q(href="/test.txt")
   end
 
   def test_signin_form
@@ -175,25 +165,29 @@ class CMSTest < Minitest::Test
     post "/users/signin", username: "admin", password: "secret"
     assert_equal 302, last_response.status
 
+    assert_equal "Welcome!", session[:message]
+    assert_equal "admin", session[:username]
+
     get last_response["Location"]
-    assert_includes last_response.body, "Welcome"
     assert_includes last_response.body, "Signed in as admin"
   end
 
   def test_signin_with_bad_credentials
     post "/users/signin", username: "guest", password: "shhhh"
     assert_equal 422, last_response.status
-    assert_includes last_response.body, "Invalid Credentials"
+    assert_nil session[:username]
+    assert_includes last_response.body, "Invalid credentials", session[:message]
   end
 
   def test_signout
-    post "/users/signin", username: "admin", password: "secret"
-    get last_response["Location"]
-    assert_includes last_response.body, "Welcome"
+    get "/", {}, {"rack.session" => { username: "admin" } }
+    assert_includes last_response.body, "Signed in as admin"
 
     post "/users/signout"
+    assert_equal "You have been signed out", session[:message]
+
     get last_response["Location"]
-    assert_includes last_response.body, "You have been signed out"
+    assert_nil session[:username]
     assert_includes last_response.body, "Sign In"
   end
 end
