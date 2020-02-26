@@ -2,6 +2,7 @@ require 'sinatra'
 require 'sinatra/reloader'
 require 'pry'
 require 'redcarpet'
+require 'yaml'
 
 configure do
   enable :sessions
@@ -34,6 +35,17 @@ def data_path
   end
 end
 
+def user_signed_in?
+  session.key?(:username)
+end
+
+def require_signed_in_user
+  unless user_signed_in?
+    session[:message] = "You must be signed in to do that."
+    redirect "/"
+  end
+end
+
 get '/' do
   pattern = File.join(data_path, "*")
 
@@ -42,25 +54,14 @@ get '/' do
   end
   erb :index
 end
-# get '/' do
-#   # binding.pry
-#   if session[:username]  == 'admin' && session[:password]  == 'secret'
-#     pattern = File.join(data_path, "*")
-#
-#     @files = Dir.glob(root + "/data/*").map do |path|
-#       File.basename(path)
-#     end
-#     erb :index
-#   else
-#     erb :users
-#   end
-# end
 
 get '/users' do
   erb :users
 end
 
 get '/new' do
+  require_signed_in_user
+
   erb :new
 end
 
@@ -76,6 +77,8 @@ get '/:filename' do
 end
 
 get '/:filename/edit' do
+  require_signed_in_user
+
   file_path = File.join(data_path, params[:filename])
 
   @filename = params[:filename]
@@ -85,6 +88,8 @@ get '/:filename/edit' do
 end
 
 post '/create' do
+  require_signed_in_user
+
   filename = params[:filename].to_s
 
   if filename.size == 0
@@ -93,7 +98,7 @@ post '/create' do
     erb :new
   else
     file_path = File.join(data_path, filename)
-    # create_document(filename)
+
     File.write(file_path, "")
     session[:message] = "#{filename} has been created."
 
@@ -102,6 +107,8 @@ post '/create' do
 end
 
 post '/:filename' do
+  require_signed_in_user
+
   file_path = File.join(data_path, params[:filename])
 
   File.write(file_path, params[:content])
@@ -111,6 +118,8 @@ post '/:filename' do
 end
 
 post "/:filename/delete" do
+  require_signed_in_user
+
   file_path = File.join(data_path, params[:filename])
 
   File.delete(file_path)
@@ -124,7 +133,7 @@ get '/users/signin' do
 end
 
 post '/users/signin' do
-  if params[:username] == "admin" && params[:password] == "secret"
+  if params[:username] == "admin" && params[:password] = "secret"
     session[:username] = params[:username]
     session[:message] = "Welcome!"
     redirect "/"
