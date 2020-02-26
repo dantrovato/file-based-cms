@@ -36,6 +36,10 @@ class CMSTest < Minitest::Test
     { "rack.session" => { username: "admin"} }
   end
 
+  def wrong_credentials
+    { "rack.session" => { username: "wrong"} }
+  end
+
   def test_index
     create_document "about.md"
     create_document "changes.txt"
@@ -89,9 +93,9 @@ def test_document_not_found
 
   def test_editing_document_signed_out
     create_document "changes.txt"
-
+    get "/changes.txt/edit"
     assert_equal 302, last_response.status
-    assert_equal "You must be signe in to do that.", session[:message]
+    assert_equal "You must be signed in to do that.", session[:message]
   end
 
   def test_updating_document
